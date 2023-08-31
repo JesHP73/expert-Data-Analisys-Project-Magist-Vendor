@@ -1,0 +1,814 @@
+
+###1) How many orders are there in the dataset?
+
+
+```        
+SQL
+SELECT COUNT(*) AS orders_count
+FROM
+    orders;        
+```
+
+### 1.1orders category by status
+   ```SQL
+   SELECT 
+    order_status, 
+    COUNT(*) AS orders
+FROM
+    orders
+GROUP BY order_status;```
+
+###2. Sold orders per year and categories
+``` SQL
+SELECT
+    YEAR(o.order_purchase_timestamp) AS year_,
+    p.product_category_name AS product_category,
+    COUNT(*) AS products_sold
+FROM
+    orders o
+JOIN
+    order_items oi ON o.order_id = oi.order_id
+JOIN
+    products p ON oi.product_id = p.product_id
+GROUP BY
+    YEAR(o.order_purchase_timestamp),
+    p.product_category_name
+ORDER BY
+    year_,
+    product_category;SELECT
+    Total_sellers_count,
+    tech_sellers_count,
+    CONCAT(FORMAT((tech_sellers_count / Total_sellers_count) * 100, 2), '%') AS tech_sellers_percentage
+FROM (
+    SELECT
+        COUNT(DISTINCT s.seller_id) AS Total_sellers_count,
+        COUNT(DISTINCT CASE WHEN pe.product_category_name_english IN (
+            'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+            'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+            'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+            'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+            'telephony'
+        ) THEN s.seller_id END) AS tech_sellers_count
+    FROM
+        sellers s
+    JOIN
+        order_items oi ON s.seller_id = oi.seller_id
+    JOIN
+        products p ON oi.product_id = p.product_id
+    JOIN
+        product_category_name_translation pe ON p.product_category_name = pe.product_category_name
+) AS seller_tech_counts;```
+
+
+
+###3. Is Magist having user growth? yes!
+
+``` SQL
+SELECT 
+    YEAR(order_purchase_timestamp) AS year_,
+    COUNT(customer_id) AS customer_count
+FROM
+    orders
+GROUP BY YEAR(order_purchase_timestamp)
+ORDER BY year_ DESC;```
+
+###4. same Quuerie but not order in DESC order
+
+``` SQL
+SELECT 
+    YEAR(order_purchase_timestamp) AS year_,
+    MONTH(order_purchase_timestamp) AS month_,
+    COUNT(customer_id)
+FROM
+    orders
+GROUP BY year_, month_;```
+
+###5. total sales per year
+
+```SQL
+SELECT 
+    YEAR(order_purchase_timestamp) AS year_,
+    COUNT(customer_id) AS total_customers,
+    COUNT(*) AS total_orders
+FROM
+    orders
+GROUP BY year_
+ORDER BY year_;
+
+# Magist growth per year, custumer, delivered and canceled orders
+
+SELECT 
+    YEAR(order_purchase_timestamp) AS year_,
+    MONTH(order_purchase_timestamp) AS month_,
+    COUNT(customer_id) AS total_customers,
+    SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END) AS delivered_orders,
+    SUM(CASE WHEN order_status = 'canceled' THEN 1 ELSE 0 END) AS canceled_orders
+FROM
+    orders
+GROUP BY year_, month_
+ORDER BY year_, month_;```
+
+
+###6. How many products are there on the products table?  
+I used Count(Distinct - for unique products
+####(Make sure that there are no duplicate products.)
+
+``` SQL
+SELECT 
+    COUNT(DISTINCT product_id) AS products_count
+FROM
+    products;```
+    
+###7) Which are the categories with most products?
+
+```SQL
+SELECT 
+    product_category_name, 
+    COUNT(DISTINCT product_id) AS n_products
+FROM
+    products
+GROUP BY product_category_name
+ORDER BY COUNT(product_id) DESC;```
+
+###8. the category that has sell the most?
+
+```SQL
+SELECT 
+    pt.product_category_name_english,
+    Round(AVG(oi.price), 2) AS average_price
+FROM
+    products p
+INNER JOIN
+    order_items oi ON p.product_id = oi.product_id
+INNER JOIN
+    product_category_name_translation pt ON p.product_category_name = pt.product_category_name
+WHERE product_category_name_english IN ('air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+    'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+    'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+    'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+    'telephony')
+GROUP BY
+    pt.product_category_name_english
+ORDER BY
+    average_price DESC;```
+
+###9. How many of those products were present in "PAID" = "Delivered"? 
+
+```SQL
+WITH ProductDelivered AS (
+    SELECT DISTINCT 
+        pt.product_category_name_english,
+        oi.order_id
+    FROM
+        order_items oi
+    JOIN
+        products p ON oi.product_id = p.product_id
+    JOIN
+        product_category_name_translation pt ON p.product_category_name = pt.product_category_name_english
+    WHERE p.product_category_name IN (
+        'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+        'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+        'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+        'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+        'telephony'
+    )
+    AND oi.order_id IN (SELECT order_id FROM orders WHERE order_status = 'delivered')
+)
+SELECT 
+    pd.product_category_name_english,
+    COUNT(DISTINCT pd.order_id) AS products_delivered_paid
+FROM ProductDelivered pd
+GROUP BY pd.product_category_name_english;```
+
+
+```SQL
+SELECT 
+	count(DISTINCT product_id) AS n_products
+FROM
+	order_items;
+
+SELECT DISTINCT 
+    pt.product_category_name_english,
+    oi.order_id
+FROM
+    order_items oi
+JOIN
+    products p ON oi.product_id = p.product_id
+JOIN
+    product_category_name_translation pt ON p.product_category_name = pt.product_category_name_english
+WHERE p.product_category_name IN (
+    'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+    'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+    'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+    'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+    'telephony'
+);```
+
+###9.1 Products by category "PAID" = "Delivered" 
+
+```SQL
+SELECT 
+    product_category_name,
+    COUNT(DISTINCT order_id) AS delivered_orders
+FROM
+    order_items
+JOIN
+    products ON order_items.product_id = products.product_id
+WHERE
+    order_id IN (SELECT order_id FROM orders WHERE order_status = 'delivered')
+GROUP BY
+    product_category_name
+ORDER BY
+    delivered_orders DESC;```
+    
+###10. What’s the average price of the products being sold?
+
+```SQL
+SELECT 
+    pt.product_category_name_english,
+    Round(AVG(oi.price), 2) AS average_price
+FROM
+    products p
+JOIN
+    order_items oi ON p.product_id = oi.product_id
+JOIN
+    product_category_name_translation pt ON p.product_category_name = pt.product_category_name_english
+WHERE p.product_category_name IN (
+    'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+    'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+    'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+    'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+    'telephony'
+)
+GROUP BY
+    pt.product_category_name_english
+ORDER BY
+    average_price DESC;```
+
+
+###11.Total Revenue Techo Products
+
+```SELECT 
+    ROUND(SUM(oi.price), 2) AS Total_revenue
+FROM
+    products p
+JOIN
+    order_items oi ON p.product_id = oi.product_id
+WHERE p.product_category_name IN (
+    'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+    'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+    'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+    'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+    'telephony'
+);```
+
+
+###12. Price categorized
+
+```SQL
+SELECT 
+    CASE WHEN oi.price > 90 THEN 'Expensive'
+         ELSE 'Not Expensive' END AS price_category,
+    COUNT(DISTINCT oi.order_id) AS order_count,
+    COUNT(DISTINCT oi.product_id) AS product_count
+FROM
+    products p
+JOIN
+    order_items oi ON p.product_id = oi.product_id
+JOIN
+    orders o ON oi.order_id = o.order_id
+WHERE
+    o.order_status = 'delivered' AND
+    p.product_category_name IN (
+        'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+        'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+        'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+        'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+        'telephony'
+    )
+GROUP BY
+    CASE WHEN oi.price > 90 THEN 'Expensive'
+         ELSE 'Not Expensive' END
+ORDER BY
+    price_category DESC;```
+
+
+###13. Only the ones with order status = delivered
+
+```SQL 
+SELECT 
+    CASE WHEN oi.price > 90 THEN 'Expensive'
+         ELSE 'Not Expensive' END AS price_category,
+    AVG(oi.price) AS average_price
+FROM
+    products p
+JOIN
+    order_items oi ON p.product_id = oi.product_id
+JOIN
+    orders o ON oi.order_id = o.order_id
+WHERE
+    o.order_status = 'delivered' AND
+    p.product_category_name IN (
+        'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+        'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+        'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+        'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+        'telephony'
+    )
+GROUP BY
+    price_category
+ORDER BY
+    price_category DESC;```
+
+###14. How many months of data are included in the magist database?
+
+```SQL
+SELECT
+    COUNT(DISTINCT DATE_FORMAT(order_purchase_timestamp, '%Y-%m')) AS months_of_data
+FROM
+    orders;```
+
+###14.1 How many sellers are there?
+
+```SQL
+SELECT
+    COUNT(DISTINCT seller_id) AS total_sellers
+FROM
+    sellers;```
+
+### 14.2 How many Tech sellers are there?
+
+```SQL
+SELECT
+    COUNT(DISTINCT s.seller_id) AS Total_sellers_count,
+    COUNT(DISTINCT CASE WHEN pe.product_category_name_english IN (
+        'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+        'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+        'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+        'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+        'telephony'
+    ) THEN s.seller_id END) AS tech_sellers
+FROM
+    sellers s
+JOIN
+    order_items oi ON s.seller_id = oi.seller_id
+JOIN
+    products p ON oi.product_id = p.product_id
+JOIN
+    product_category_name_translation pe ON p.product_category_name = pe.product_category_name;```
+
+
+###15. What percentage of overall sellers are Tech sellers?
+
+```SQL
+SELECT
+    Total_sellers_count,
+    tech_sellers_count,
+    CONCAT(FORMAT((tech_sellers_count / Total_sellers_count) * 100, 0), '%') AS tech_sellers_percentage
+FROM (
+    SELECT
+        COUNT(DISTINCT s.seller_id) AS Total_sellers_count,
+        COUNT(DISTINCT CASE WHEN pe.product_category_name_english IN (
+            'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+            'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+            'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+            'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+            'telephony'
+        ) THEN s.seller_id END) AS tech_sellers_count
+    FROM
+        sellers s
+    JOIN
+        order_items oi ON s.seller_id = oi.seller_id
+    JOIN
+        products p ON oi.product_id = p.product_id
+    JOIN
+        product_category_name_translation pe ON p.product_category_name = pe.product_category_name
+) AS seller_tech_counts;```
+
+
+###16. Total amount earned by all sellers
+
+```SQL
+SELECT
+    Format(SUM(oi.price),2) AS total_amount_earned_all_sellers
+FROM
+    order_items oi
+JOIN
+    orders o ON oi.order_id = o.order_id
+WHERE
+    o.order_status = 'delivered';```
+
+###17. Total amount earned by tech sellers
+
+```SQL 
+SELECT
+    FORMAT(SUM(oi.price), 2) AS total_amount_earned_tech_sellers
+FROM
+    order_items oi
+JOIN
+    products p ON oi.product_id = p.product_id
+JOIN
+    orders o ON oi.order_id = o.order_id
+JOIN
+    product_category_name_translation pe ON p.product_category_name = pe.product_category_name
+WHERE
+    o.order_status = 'delivered' AND
+    pe.product_category_name_english IN (
+        'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+        'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+        'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+        'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+        'telephony'
+    );```
+
+###18. Tanslation of the products categories
+
+```SQL
+SELECT 
+    pt.product_category_name_english,
+    COUNT(DISTINCT p.product_id)
+FROM
+    products p
+        INNER JOIN
+    product_category_name_translation pt ON p.product_category_name = pt.product_category_name
+GROUP BY p.product_category_name
+ORDER BY COUNT(p.product_id) DESC;```
+
+###19. What’s the price for the most expensive and cheapest products?
+
+```SQL
+SELECT 
+    MIN(price) AS cheapest, 
+    MAX(price) AS most_expensive
+FROM 
+	order_items;```
+
+###20. Max and Min price per category | What are the highest and lowest payment values?
+
+```SQL
+SELECT 
+	MAX(payment_value) as highest,
+    MIN(payment_value) as lowest
+FROM
+	order_payments;```
+    
+
+### 20.1 Maximum someone has paid for an order:
+
+```SQL
+SELECT
+    SUM(payment_value) AS highest_order
+FROM
+    order_payments
+GROUP BY
+    order_id
+ORDER BY
+    highest_order DESC
+LIMIT
+    1;```
+
+
+###21. How much time do thelocal potential parthner takes in delivery
+
+```SQL
+SELECT 
+    DATEDIFF(order_delivered_customer_date,
+            order_delivered_carrier_date) AS Carr2Cust,
+    DATEDIFF(order_delivered_customer_date,
+            order_purchase_timestamp) AS Ord2Cust,
+    DATEDIFF(order_delivered_customer_date,
+            order_estimated_delivery_date) AS EstimDelVSDeliv,
+    order_purchase_timestamp,
+    order_delivered_carrier_date,
+    order_delivered_customer_date,
+    order_estimated_delivery_date,
+    order_status
+FROM
+    orders
+WHERE
+    order_status = 'delivered';```
+
+
+###22. all delivered have reviews? Not all (this is a list)
+
+```SQL
+SELECT
+    r.review_score AS 'score by customer',
+    EXTRACT(YEAR FROM r.review_creation_date) AS year,
+    EXTRACT(MONTH FROM r.review_creation_date) AS month,
+    COUNT(r.review_id) AS total_reviews,
+    COUNT(DISTINCT CASE WHEN o.order_status = 'delivered' THEN r.review_id END) AS delivered_reviews,
+    CASE WHEN COUNT(DISTINCT CASE WHEN o.order_status = 'delivered' THEN r.review_id END) = COUNT(DISTINCT o.order_id) THEN 'Yes' ELSE 'No' END AS all_delivered_have_review
+FROM
+    order_reviews r
+JOIN
+    orders o ON r.order_id = o.order_id
+GROUP BY
+    r.review_score, year, month;```
+
+
+###23. what Total of all delivered have reviews?
+
+```SQL 
+SELECT 
+    s.seller_id,
+    o.order_status,
+    rev.review_score,
+    YEAR(rev.review_creation_date) AS review_year,
+    MONTH(rev.review_creation_date) AS review_month,
+    Year (review_answer_timestamp) as Rev_Ans_year,
+    Month( review_answer_timestamp) as Rev_Ans_month
+FROM 
+    order_reviews rev
+JOIN 
+    orders o ON rev.order_id = o.order_id
+JOIN 
+    order_items oi ON oi.order_id = o.order_id
+JOIN 
+    sellers s ON s.seller_id = oi.seller_id
+ORDER BY 
+    s.seller_id,
+    o.order_status,
+    rev.review_score,
+    review_year,
+    review_month;```
+
+-- **How to interpret the result:**
+- If the result is a positive number, it means that the order_delivered_customer_date is after the order_delivered_carrier_date, and the delivery was delayed by that number of days.
+
+- If the result is a negative number, it means that the order_delivered_customer_date is before the order_delivered_carrier_date, and the delivery was completed before the carrier's estimated date.
+
+- If the result is 0, it means that the delivery was on time, with no delay.
+For example, if the result of DATEDIFF is 2, it means that the delivery was delayed by 2 days compared to the carrier's estimated delivery date. If the result is -1, it means that the delivery was completed 1 day earlier than the carrier's estimated delivery date.
+
+
+``` SQL
+SELECT 
+    s.seller_id,
+    o.order_status,
+    rev.review_score,
+    rev.review_id,
+    o.order_id,
+    CONCAT(YEAR(rev.review_creation_date), '-', MONTH(rev.review_creation_date)) AS review_year_month,
+    CONCAT(YEAR(review_answer_timestamp), '-', MONTH(review_answer_timestamp)) AS rev_ans_year_month,
+    DATEDIFF(o.order_delivered_customer_date, o.order_delivered_carrier_date) AS Delivery_Delay_Days
+FROM 
+    order_reviews rev
+JOIN 
+    orders o ON rev.order_id = o.order_id
+JOIN 
+    order_items oi ON oi.order_id = o.order_id
+JOIN 
+    sellers s ON s.seller_id = oi.seller_id
+
+where rev.order_id = o.order_id
+ORDER BY 
+    s.seller_id,
+    o.order_status,
+    rev.review_score,
+    review_year_month;```
+
+```SQL 
+SELECT 
+    YEAR(ore.review_creation_date) AS "year",
+    ore.review_creation_date,
+    AVG(DATEDIFF(order_delivered_customer_date, order_purchase_timestamp)) AS DeliveryTime,
+    AVG(review_score) AS "avg_review_score"
+FROM
+    orders o
+JOIN order_reviews ore ON o.order_id = ore.order_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN product_category_name_translation pct ON p.product_category_name = pct.product_category_name
+WHERE
+    order_status = 'delivered'
+    AND pct.product_category_name_english IN ('air_conditioning', 'audio',
+        'computers',
+        'computers_accessories',
+        'consoles_games',
+        'dvds_blu_ray',
+        'electronics',
+        'home_appliances',
+        'home_appliances_2',
+        'pc_gamer',
+        'portable_kitchen_food_processors',
+        'signaling_and_security',
+        'small_appliances_home_oven_and_coffee',
+        'tablets_printing_image',
+        'telephony') 
+GROUP BY "year", ore.review_creation_date
+ORDER BY "year" DESC
+LIMIT 0, 50000;```
+
+
+###24. Avg. Review score per seller
+
+```SQL
+SELECT 
+    s.seller_id,
+    COUNT(*) AS total_reviews,
+    Round(AVG(rev.review_score), 0) AS avg_review_score
+FROM 
+    order_reviews rev
+JOIN 
+    orders o ON rev.order_id = o.order_id
+JOIN 
+    order_items oi ON oi.order_id = o.order_id
+JOIN 
+    sellers s ON s.seller_id = oi.seller_id
+GROUP BY 
+    s.seller_id;```
+
+
+###25. total Revenue per order
+
+```SQL
+SELECT
+    s.seller_id,
+    COUNT(DISTINCT oi.order_id) AS total_orders,
+    Round(SUM(op.payment_value),0) AS total_revenue
+FROM
+    sellers s
+JOIN
+    order_items oi ON s.seller_id = oi.seller_id
+Join
+    order_payments op on op.order_id = oi.order_id
+JOIN
+    products p ON oi.product_id = p.product_id
+JOIN
+    product_category_name_translation pe ON p.product_category_name = pe.product_category_name
+WHERE
+    pe.product_category_name_english IN (
+        'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+        'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+        'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+        'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+        'telephony'
+    )
+GROUP BY
+    s.seller_id
+ORDER BY
+    total_revenue DESC;```
+    
+###26. Only Tech products revenue vs total revenue
+
+```SQL
+SELECT
+    FORMAT(tech_revenue, 2) AS tech_revenue,
+    FORMAT(total_revenue, 2) AS total_revenue,
+    CONCAT(FORMAT((tech_revenue / total_revenue) * 100, 2), '%') AS tech_revenue_percentage
+FROM (
+    SELECT
+        SUM(op.payment_value) AS tech_revenue
+    FROM
+        order_payments op
+    JOIN
+        orders o ON op.order_id = o.order_id
+    JOIN
+        order_items oi ON oi.order_id = o.order_id
+    JOIN
+        products p ON oi.product_id = p.product_id
+    JOIN
+        product_category_name_translation pe ON p.product_category_name = pe.product_category_name
+    WHERE
+        pe.product_category_name_english IN (
+            'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+            'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+            'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+            'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+            'telephony'
+        )
+) AS tech_revenue_data,
+(
+    SELECT
+        SUM(op.payment_value) AS total_revenue
+    FROM
+        order_payments op
+    JOIN
+        orders o ON op.order_id = o.order_id
+    WHERE
+        o.order_status = 'delivered'
+) AS total_revenue_data;```
+
+
+###27. Custumer gwrouth over the years of the data set
+
+```SQL
+SELECT 
+    YEAR(order_purchase_timestamp) AS year_,
+    MONTH(order_purchase_timestamp) AS month_,
+    COUNT(customer_id) AS total_customers
+FROM
+     orders
+
+where order_status = "Delivered"
+
+GROUP BY year_, month_
+order by year_, month_;```
+
+###28. Orders per year and delivered delay days 
+
+```SQL
+SELECT 
+    YEAR(order_purchase_timestamp) AS year_,
+    MONTH(order_purchase_timestamp) AS month_,
+    COUNT(customer_id) AS total_customers,
+    AVG(DATEDIFF(order_delivered_customer_date, order_purchase_timestamp)) AS Delayed_info
+FROM
+     orders
+
+where order_status = "Delivered"
+
+GROUP BY year_, month_
+order by year_, month_;```
+
+
+ ```SQL
+ SELECT
+    order_status,
+    YEAR(order_purchase_timestamp) AS year_,
+    MONTH(order_purchase_timestamp) AS month_,
+    COUNT(o.order_id) AS total_customers,
+    Round(avg(days_late),0) as late_deliivery_days,
+    Round(avg(review_score),0)as Avg_review_score,
+    Round(avg(days_to_deliver),0) as Avg_total_days_to_delivered
+from orders o
+    inner join order_items oi 
+        on o.order_id=oi.order_id
+    inner join order_reviews orev
+        on o.order_id=orev.order_id
+    inner join products p
+        on oi.product_id = p.product_id
+    inner join product_category_name_translation pt
+        on p.product_category_name = pt.product_category_name
+    inner join sellers s 
+        on oi.seller_id = s.seller_id
+        where
+        product_category_name_english in ( 'air_conditioning', 'audio', 'computers',
+                                         'computers_accessories', 'consoles_games', 'dvds_blu_ray', 'electronics', 'fixed_telephony',
+                                         'home_appliances', 'home_appliances_2', 'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+                                         'small_appliances', 'small_appliances_home_oven_and_coffee',
+                                         'tablets_printing_image', 'telephony'
+                                       )
+        GROUP BY year_, month_, order_status
+ order by year_, month_;```
+ 
+ 
+ ###29. order status by years and delayed days relation
+
+```SQL
+SELECT
+    p.product_id,
+    pt.product_category_name_english,
+    ROUND(op.payment_value, 0) AS payment_value,
+    IF(pt.product_category_name_english IN (
+            'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+            'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+            'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+            'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image',
+            'telephony'
+        ), 'Tech Product', 'Other Product') AS product_category
+FROM
+    products p
+JOIN
+    order_items oi ON oi.product_id = p.product_id
+JOIN
+    order_payments op ON op.order_id = oi.order_id
+JOIN
+    product_category_name_translation pt ON p.product_category_name = pt.product_category_name
+ORDER BY
+    product_category,
+    payment_value DESC;```
+
+
+###30. products per category and payment value by custumer analisis 
+
+```SQL
+ SELECT
+    p.product_id,
+    pt.product_category_name_english,
+    ROUND(op.payment_value, 0) AS payment_value
+FROM
+    products p
+JOIN
+    order_items oi ON oi.product_id = p.product_id
+JOIN
+    order_payments op ON op.order_id = oi.order_id
+JOIN
+    product_category_name_translation pt ON p.product_category_name = pt.product_category_name
+WHERE pt.product_category_name_english IN (
+    'air_conditioning', 'audio', 'computers_accessories', 'computers', 'consoles_games',
+    'dvds_blu_ray', 'electronics', 'fixed_telephony', 'home_appliances_2', 'home_appliances',
+    'pc_gamer', 'portable_kitchen_food_processors', 'signaling_and_security',
+    'small_appliances_home_oven_and_coffee', 'small_appliances', 'tablets_printing_image', 'telephony'
+)
+ORDER BY
+    pt.product_category_name_english,
+    payment_value DESC;```
+
+
+| Rank | THING-TO-RANK |
+|-----:|---------------|
+|     👍🏽|           Easy and insightful                  |
+|     💪🏽|                          Good for a start    |
+|     👋🏾|                        I have some feedback for you      |
