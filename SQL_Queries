@@ -1,13 +1,10 @@
 
 ###1) How many orders are there in the dataset?
 
-
-```        
-SQL
-SELECT COUNT(*) AS orders_count
+``SELECT 
+COUNT(*) AS orders_count
 FROM
-    orders;        
-```
+    orders;``
 
 ### 1.1orders category by status
    ```SQL
