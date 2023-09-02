@@ -12,6 +12,11 @@ and make informed decisions.
 The case study is set in the context of Eniac's expansion plans to the Brazilian market. As a Data Analyst, the main 
 deliverable is a presentation that addresses critical questions related to potential partnerships, delivery efficiency, product popularity, and revenue trends.
 
+## Squema
+
+![Sample Schema](images/schema.png)
+
+
 ## Presentation Highlights
 The final presentation focuses on the following key points:
 
