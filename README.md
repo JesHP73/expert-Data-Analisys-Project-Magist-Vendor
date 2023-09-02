@@ -14,7 +14,7 @@ deliverable is a presentation that addresses critical questions related to poten
 
 ## Squema
 
-![Sample Schema](images/schema.png)
+![Image Alt Text](images/Imageschema.png)
 
 
 ## Presentation Highlights
