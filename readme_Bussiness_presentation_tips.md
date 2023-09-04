@@ -73,7 +73,7 @@ Here's 6-step tips to creating compelling plots:
 2. Upload the csv to a new Tableau project. 📤
 3. Create your plot with full knowledge of the visualized data. 🎨
 
-![Image Alt Text] (Screenshot 2023-09-04 at 07.50.14.png)
+![image atl text] (Screenshot 2023-09-04 at 07.50.14.png)
 
 ---
 
