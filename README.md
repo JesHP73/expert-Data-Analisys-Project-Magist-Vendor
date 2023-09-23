@@ -52,7 +52,7 @@ The Eniac case study provides valuable insights into addressing critical busines
 For any questions or additional information, feel free to reach out.
 
 ---
-Author: [Jess]
+Author: [Jess] //
 Date: [01.09.2023]
 
 
